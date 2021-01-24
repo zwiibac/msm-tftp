@@ -1,0 +1,11 @@
+add_subdirectory(action)
+add_subdirectory(data)
+add_subdirectory(event)
+add_subdirectory(guard)
+add_subdirectory(protocol)
+add_subdirectory(state)
+add_subdirectory(machine)
+add_subdirectory(logger)
+add_subdirectory(test_utils)
+add_subdirectory(tftp_server)
+
