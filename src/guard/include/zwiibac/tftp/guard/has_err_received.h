@@ -6,12 +6,14 @@
 namespace zwiibac {
 namespace tftp {
 
-struct HasMoreToSend
+struct HasErrReceived 
 {
     template <class Evt,class Fsm,class SourceState,class TargetState>
     constexpr bool operator()(const Evt&,const Fsm& fsm,const SourceState&,const TargetState&) const
     {
-        return fsm.last_block_size_ == fsm.agreed_block_size_ || fsm.last_sent_block_ == 0;
+        const auto received_header = HeaderView::FromBuffer(fsm.received_packet_);
+        return fsm.received_packet_.size() > HeaderView::Size() 
+            && received_header.OpCd() == OpCode::Error;
     }
 };
 

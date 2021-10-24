@@ -57,7 +57,7 @@ protected:
     }
 
     template<size_t Index>
-    typename std::tuple_element<Index, ParamType>::type Get() { return std::get<Index>(GetParam()); }
+    typename std::tuple_element_t<Index, ParamType> Get() { return std::get<Index>(GetParam()); }
 };
 
 TEST_P(FormErrorPacketFixture, Do) 

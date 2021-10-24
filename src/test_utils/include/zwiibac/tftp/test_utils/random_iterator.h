@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <iterator>
 #include <random>
 
@@ -7,23 +8,24 @@ namespace zwiibac {
 namespace tftp {
 namespace test_utils {
 
-struct RandomIterator :  public std::iterator<std::input_iterator_tag, char>
+struct RandomIterator
 {
 public:
+    using iterator_category = std::forward_iterator_tag;
     using value_type = char;
     using difference_type = size_t;
-    using reference_type = char&;
-    using pointer_type = char*;
+    using reference = char;
+    using pointer = const char*;
 
     RandomIterator() = default;
     RandomIterator(const RandomIterator& other) : count_(other.count_) {}
     RandomIterator(difference_type pos) : count_(pos) {}
 
-    bool operator==(RandomIterator other) { return count_ == other.count_; }
-    bool operator!=(RandomIterator other) { return count_ != other.count_; }
+    bool operator==(const RandomIterator& other) const { return count_ == other.count_; }
+    bool operator!=(const RandomIterator& other) const { return count_ != other.count_; }
 
-    reference_type operator*() { return current_value_; }
-    pointer_type operator->() { return &current_value_; }
+    reference operator*() const { return current_value_; }
+    pointer operator->() const { return &current_value_; }
 
     RandomIterator& operator++() { ++count_; current_value_ = dist_(random_device_);return *this;}
     RandomIterator operator++(int) { RandomIterator tmp(*this); current_value_ = dist_(random_device_);return tmp;}

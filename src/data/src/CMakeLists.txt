@@ -1,12 +1,9 @@
-
 set(SOURCES
     file_path.cpp
 )
 
 set(LIBS
     TftpProtocol
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_FILESYSTEM_LIBRARY}
 )
 
 add_library(TftpData STATIC ${SOURCES})

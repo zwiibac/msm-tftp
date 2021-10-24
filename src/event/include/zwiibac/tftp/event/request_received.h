@@ -9,9 +9,12 @@ namespace tftp {
 
 struct RequestReceived 
 {
-    const OpCode op_code = static_cast<OpCode>(0);
-    const std::string_view file_name;
-    const std::string_view mode;
+    OpCode op_code = static_cast<OpCode>(0);
+    std::string_view file_name;
+    std::string_view mode;
+    std::string_view block_size_;
+    std::string_view time_out_;
+    std::string_view transfer_size_;
 };
 
 } // end namespace tftp

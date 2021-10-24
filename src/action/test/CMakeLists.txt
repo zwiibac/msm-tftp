@@ -1,5 +1,3 @@
-find_package(Boost COMPONENTS system REQUIRED)
-
 set(SOURCES
     form_data_packet_test.cpp
     init_serve_read_request_test.cpp
@@ -7,12 +5,12 @@ set(SOURCES
     form_error_packet_test.cpp
     form_ack_packet_test.cpp
     write_data_test.cpp
+    form_oack_packet_test.cpp
 )
 
 set(LIBS
     gtest_main
     gmock
-    ${Boost_SYSTEM_LIBRARY}
     TftpAction
     TestUtils
 )

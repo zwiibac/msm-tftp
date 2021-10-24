@@ -1,5 +1,6 @@
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+find_package(Python 3 REQUIRED COMPONENTS Interpreter)
 
 set( SOURCES
     server_driver.cpp
@@ -22,7 +23,7 @@ add_custom_command(
                 ${CMAKE_CURRENT_BINARY_DIR}/pytest)
 
 add_test(NAME ServerIntegrationTest 
-    COMMAND ${PYTHON_EXECUTABLE} -m pytest pytest
+    COMMAND ${Python_EXECUTABLE} -m pytest pytest
     WORKING_DIRECTORY ${RUNTIME_OUTPUT_DIRECTORY})
 
 #COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/server_test.py --verbose 

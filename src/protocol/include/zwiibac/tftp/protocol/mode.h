@@ -4,6 +4,8 @@
 #include <string_view>
 #include <ostream>
 
+#include "case_invariant_equal.h"
+
 namespace zwiibac {
 namespace tftp {
 
@@ -20,12 +22,7 @@ constexpr std::string_view kOctetMode = "octet";
 
 inline constexpr std::optional<Mode> GetMode(const std::string_view& mode)
 {
-    auto Equal = [](const std::string_view& value1, const std::string_view& value2)
-    {
-        return std::equal(value1.begin(), value1.end(), 
-        value2.begin(), value2.end(),
-        [](auto a, auto b) { return tolower(a) == b; });
-    };
+    using zwiibac::tftp::detail::Equal;
 
     if (Equal(mode, kOctetMode)) 
         return std::optional<Mode>(Mode::Octet);
@@ -54,7 +51,7 @@ inline constexpr std::string_view ToString(Mode mode) noexcept
     }
 };
 
-std::ostream& operator<<(std::ostream& os, Mode value);
+std::ostream& operator<<(std::ostream& os, Mode value) noexcept;
 
 struct ModeDecoder 
 {

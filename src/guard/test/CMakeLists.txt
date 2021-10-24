@@ -9,6 +9,8 @@ set(SOURCES
     is_old_data_test.cpp
     has_read_request_received_test.cpp
     has_write_request_received_test.cpp
+    has_more_data_to_send_test.cpp
+    has_err_received_test.cpp
 )
 
 set(LIBS

@@ -5,8 +5,6 @@ set(SOURCES
 
 set(LIBS
     gtest_main
-    ${Boost_SYSTEM_LIBRARY}
-    ${Boost_FILESYSTEM_LIBRARY}
     TftpData
 )
 

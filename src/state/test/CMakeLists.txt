@@ -1,5 +1,3 @@
-find_package(Boost COMPONENTS system REQUIRED)
-
 set(SOURCES
     accepting_test.cpp
     waiting_for_ack_test.cpp
@@ -8,7 +6,6 @@ set(SOURCES
 set(LIBS
     gtest_main
     gmock
-    ${Boost_SYSTEM_LIBRARY}
     TftpState
     TftpEvent
     TftpProtocol

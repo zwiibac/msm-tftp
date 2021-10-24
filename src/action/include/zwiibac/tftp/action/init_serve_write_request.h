@@ -35,8 +35,6 @@ struct InitServeWriteRequest
 
         if (auto mode = fsm.GetMode(request.mode)) 
         {
-            fsm.agreed_block_size_ = 512;
-            
             if (auto file_name = fsm.GetWriteFilePath(request.file_name)) 
             {
                 fsm.file_stream_.open(file_name.value().data(), std::ios::out);

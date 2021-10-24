@@ -24,8 +24,6 @@ struct MachineMock
     std::span<const char> received_packet_;
     std::array<char, 16> buffer_;
     size_t last_sent_block_;
-    Endpoint agreed_remote_endpoint_;
-    Endpoint last_remote_endpoint_;
 };
 
 class HasAckReceivedTest : public ::testing::Test
@@ -37,10 +35,7 @@ protected:
     MachineMock machine_mock;
     HeaderProxy header_proxy;
 
-    virtual void SetUp() override 
-    {
-        header_proxy = HeaderProxy::FromBuffer(machine_mock.buffer_);
-    }
+    virtual void SetUp() override {}
 
 public:
     HasAckReceivedTest()

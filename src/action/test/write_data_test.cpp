@@ -40,7 +40,7 @@ struct FileMock
     FileStreamMock file_stream_;
 };
 
-struct File_t
+struct FileFake
 {
     std::ostringstream file_stream_;
 };
@@ -73,7 +73,7 @@ protected:
 TEST_F(WriteDataTest, Do)
 {
     // arrange
-    StateMachine<File_t> machine;
+    StateMachine<FileFake> machine;
 
     const size_t block_size = 512;
     const uint16_t block = 97;

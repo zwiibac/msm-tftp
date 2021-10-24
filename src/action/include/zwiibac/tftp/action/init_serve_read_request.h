@@ -34,11 +34,18 @@ struct InitServeReadRequest
         ZWIIB_LOG_IF(error, bind_ec) << "Failed to bind socket to " << fsm.local_data_endpoint_ << " | " << bind_ec << " " << bind_ec.message() << std::endl;
 
         if (auto mode = fsm.GetMode(request.mode)) 
-        {
-            fsm.agreed_block_size_ = 512;
-            
+        {            
             if (auto file_name = fsm.GetReadFilePath(request.file_name)) 
             {
+                if (auto requested_transfer_size = fsm.GetTransferSize(request.transfer_size_))
+                {
+                    if (auto transfer_size = fsm.GetFileSize(file_name.value())) 
+                    {
+                        fsm.use_transfer_size_option_ = requested_transfer_size == 0;
+                        fsm.file_size_ = transfer_size;
+                    }                    
+                }
+
                 fsm.file_stream_.open(file_name.value().data());
                 if (fsm.file_stream_.bad())
                 {
@@ -56,8 +63,19 @@ struct InitServeReadRequest
         {
             // no valid mode provided
             fsm.last_error_code_ = ErrorCode::IllegalTftpOperation;
-        }        
-        
+        }
+
+        if (auto time_out = fsm.GetTimeOut(request.time_out_)) 
+        {
+            fsm.time_out_ = time_out.value();
+            fsm.use_time_out_option_ = true;
+        }
+
+        if (auto block_size = fsm.GetBlockSize(request.block_size_)) 
+        {
+            fsm.agreed_block_size_  = block_size.value();
+            fsm.use_block_size_option_ = true;            
+        }
     }
 };
 

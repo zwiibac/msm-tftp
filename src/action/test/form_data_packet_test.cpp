@@ -35,7 +35,7 @@ struct FileMock
     FileStreamMock file_stream_;
 };
 
-struct File_t
+struct FileFake
 {
     std::istringstream file_stream_;
 };
@@ -72,7 +72,7 @@ protected:
 TEST_F(FormDataPacketTest, FormFirstDataPacket)
 {
     // arrange    
-    StateMachine<File_t> machine;
+    StateMachine<FileFake> machine;
 
     const size_t file_size = 2100;
     const size_t block_size = 512;
@@ -100,7 +100,7 @@ TEST_F(FormDataPacketTest, FormFirstDataPacket)
 TEST_F(FormDataPacketTest, FormSecondDataPacket)
 {
     // arrange
-    StateMachine<File_t> machine;
+    StateMachine<FileFake> machine;
 
     const size_t file_size = 2100;
     const size_t block_size = 512;
@@ -157,7 +157,7 @@ TEST_F(FormDataPacketTest, FormSecondDataPacketWithIoBad)
 TEST_F(FormDataPacketTest, FormLastDataPacket)
 {
     // arrange
-    StateMachine<File_t> machine;
+    StateMachine<FileFake> machine;
 
     const size_t file_size = 2100;
     const size_t block_size = 512;
@@ -186,7 +186,7 @@ TEST_F(FormDataPacketTest, FormLastDataPacket)
 TEST_F(FormDataPacketTest, FormLastDataPacketIsEmpty)
 {
     // arrange
-    StateMachine<File_t> machine;
+    StateMachine<FileFake> machine;
 
     const size_t file_size =2048;
     const size_t block_size = 512;

@@ -1,5 +1,6 @@
 #include <array>
 #include <algorithm>
+#include <gmock/gmock-function-mocker.h>
 #include <tuple>
 #include <string>
 #include <span>
@@ -44,6 +45,10 @@ struct AcceptingMachineMock : private boost::noncopyable
 
     MOCK_METHOD(void, process_event, (RequestReceived event));
     MOCK_METHOD(void, process_event, (AcceptingFailed event));
+
+    MOCK_METHOD(bool, IsBlockSizeOption, (const std::string_view&));
+    MOCK_METHOD(bool, IsTimeOutOption, (const std::string_view&));
+    MOCK_METHOD(bool, IsTransferSizeOption, (const std::string_view&));
 
     std::weak_ptr<SocketMock> listener_socket_;
     Endpoint agreed_remote_endpoint_;
@@ -166,8 +171,8 @@ protected:
     }
 
     template<size_t Index>
-    typename std::tuple_element<Index, ParamType>::type Get() { return std::get<Index>(GetParam()); }
-
+    typename std::tuple_element_t<Index, ParamType> Get() { return std::get<Index>(GetParam()); }
+    
     virtual void SetUp() override 
     {
         received_bytes = Get<Param::ReceivedBytes>();

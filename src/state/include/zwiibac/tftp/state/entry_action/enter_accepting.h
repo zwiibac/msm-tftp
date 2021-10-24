@@ -1,12 +1,15 @@
 #pragma once
 
 #include <algorithm>
+#include <ctype.h>
 
 #include<boost/asio.hpp>
 
 #include <zwiibac/tftp/logger/logger.h>
 #include <zwiibac/tftp/protocol/header.h>
 #include <zwiibac/tftp/protocol/opcode.h>
+#include <zwiibac/tftp/protocol/options.h>
+#include <zwiibac/tftp/protocol/request.h>
 #include <zwiibac/tftp/protocol/trace.h>
 #include <zwiibac/tftp/event/accepting_failed.h>
 #include <zwiibac/tftp/event/request_received.h>
@@ -51,48 +54,73 @@ struct EnterAccepting
     template<class Fsm>
     void ProcessEventFromBuffer(Fsm& fsm, size_t bytes_received) const
     {
-        if (fsm.receive_buffer_[bytes_received-1] != '\0')
+        if (bytes_received < ShortHeaderView::Size() + 2 || fsm.receive_buffer_[bytes_received-1] != '\0')
         {
             // in order for the null terminated strings to work the last received byte must be null.
             fsm.process_event(AcceptingFailed{});
         }
+    
+        RequestReceived request_received_event;
 
-        auto iter = fsm.receive_buffer_.cbegin();
-        const auto end = fsm.receive_buffer_.cbegin() + bytes_received;
+        request_received_event.op_code = ShortHeaderView::FromBuffer(fsm.receive_buffer_).OpCd();
 
+        RequestTokenizer request_tokens(
+            fsm.receive_buffer_.cbegin() + ShortHeaderView::Size(), 
+            fsm.receive_buffer_.cbegin() + bytes_received);
 
-        if (++iter == end || ++iter == end) 
+        auto token_iter = request_tokens.begin();
+        
+        request_received_event.file_name = *token_iter;            
+
+        if (++token_iter == request_tokens.end()) 
         {
-            // not even an opcode
-            fsm.process_event(AcceptingFailed{});
-        }
-
-        OpCode op_code = ShortHeaderView::FromBuffer(fsm.receive_buffer_).OpCd();
-
-        size_t parsed_bytes = ShortHeaderView::Size();
-
-        std::string_view file_name = iter;
-        if ((iter = std::find(iter, end, '\0')) == end || ++iter == end) 
-        {
-            // less arguments than expected
-            fsm.process_event(RequestReceived{op_code, file_name});
+            fsm.process_event(request_received_event);
             return;
         }
 
-        std::string_view mode = iter;
-        if ((iter = std::find(iter, end, '\0')) == end || ++iter == end) 
+        request_received_event.mode = *token_iter;
+
+        if (++token_iter == request_tokens.end()) 
         {
-            ZWIIB_LOG(trace) << fsm.local_data_endpoint_.port() << "|" <<  fsm.agreed_remote_endpoint_  << "|"
-                << "received " << op_code << " <file=" << file_name << ", mode=" << mode << ">";
-            fsm.process_event(RequestReceived{op_code, file_name, mode});
+            fsm.process_event(request_received_event);
             return;
         }
 
-        // still some options to parse
-        ZWIIB_LOG(warning) << "unparsed options";
-        ZWIIB_LOG(trace) << fsm.local_data_endpoint_.port() << "|" <<  fsm.agreed_remote_endpoint_ << "|"
-            << "received " << op_code << " <file=" << file_name << ", mode=" << mode << ">";
-        fsm.process_event(RequestReceived{op_code, file_name, mode});
+        do {
+            auto key = *token_iter;
+
+            if (++token_iter == request_tokens.end()) 
+            {
+                break;
+            }
+
+            if (fsm.IsBlockSizeOption(key)) 
+            {
+                request_received_event.block_size_= *token_iter;
+                continue;
+            }
+
+            if (fsm.IsTimeOutOption(key)) 
+            {
+                request_received_event.time_out_ = *token_iter;
+                continue;
+            }
+
+            if (fsm.IsTransferSizeOption(key)) 
+            {
+                request_received_event.transfer_size_ = *token_iter;
+                continue;
+            }
+
+            ZWIIB_LOG(warning) << "unknown option \""<< key << "\"";
+        } while (++token_iter != request_tokens.end());
+
+        // ZWIIB_LOG(trace) << fsm.local_data_endpoint_.port() << "|" <<  fsm.agreed_remote_endpoint_ << "|"
+        //     << "received " << request_received_event.op_code 
+        //     << " <file=" << request_received_event.file_name 
+        //     << ", mode=" << request_received_event.mode << ">";
+        fsm.process_event(request_received_event);
+        return;
     }
 };
 

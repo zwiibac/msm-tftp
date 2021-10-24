@@ -1,39 +1,19 @@
 #include <optional>
-#include <tuple>
 #include <string_view>
 #include <string>
 
 #include <gtest/gtest.h>
 
 #include <zwiibac/tftp/protocol/mode.h>
+#include "simple_input_result_fixture.h"
 
 namespace {
 
-using namespace zwiibac::tftp;
+using zwiibac::tftp::Mode;
+using zwiibac::tftp::GetMode;
 
-using ModeTestData = std::tuple<std::string_view, std::optional<Mode> >;
-
-class GetModeFixture : public testing::TestWithParam<ModeTestData> 
-{
-public:
-    enum Param : size_t 
-    {
-        Input = 0,
-        Result = 1
-    };
-protected:
-    virtual void SetUp() override 
-    {
-        input = Get<Param::Input>();
-        expected_result = Get<Param::Result>();
-    }
-    
-    template<size_t Index>
-    typename std::tuple_element<Index, ParamType>::type Get() { return std::get<Index>(GetParam()); }
-    
-    std::string_view input;
-    std::optional<Mode> expected_result;
-};
+using GetModeFixture = zwiibac::tftp::testing::SimpleInputResultFixture<std::string_view, std::optional<Mode>>;
+using ModeTestData = GetModeFixture::TestData;
 
 TEST_P(GetModeFixture, Do) 
 {
@@ -47,7 +27,7 @@ TEST_P(GetModeFixture, Do)
         << expected_result.value_or(static_cast<Mode>(0));
 }
 
-INSTANTIATE_TEST_SUITE_P(GetModeTest, GetModeFixture, testing::Values(
+INSTANTIATE_TEST_SUITE_P(GetModeTest, GetModeFixture, ::testing::Values(
     ModeTestData{"mail", Mode::Mail},
     ModeTestData{"mAIl", Mode::Mail},
     ModeTestData{"majl", std::nullopt},

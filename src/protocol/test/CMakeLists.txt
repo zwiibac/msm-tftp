@@ -2,6 +2,7 @@
 set(SOURCES
     mode_test.cpp
     header_test.cpp
+    options_test.cpp
 )
 
 set(LIBS

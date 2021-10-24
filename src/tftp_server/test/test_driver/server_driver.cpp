@@ -11,7 +11,7 @@ using zwiibac::tftp::TftpServer;
 
 TftpServer::IoContext io_context;
 
-TftpServer server(io_context, 2);
+TftpServer server(io_context, 100);
 
 void handle_stop (int param)
 {

@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <functional>
+#include <gmock/gmock-nice-strict.h>
 #include <tuple>
 
 #include <gtest/gtest.h>
@@ -9,6 +10,7 @@
 
 #include <zwiibac/tftp/data/buffer.h>
 #include <zwiibac/tftp/data/transfer_state.h>
+#include <zwiibac/tftp/data/option.h>
 
 #include <zwiibac/tftp/machine/session_data.h>
 #include <zwiibac/tftp/machine/transition_table.h>
@@ -16,6 +18,7 @@
 
 #include <zwiibac/tftp/protocol/tid.h>
 #include <zwiibac/tftp/protocol/mode.h>
+#include <zwiibac/tftp/protocol/options.h>
 
 #include <zwiibac/tftp/test_utils/random_iterator.h>
 
@@ -33,7 +36,7 @@ std::pair<char*, size_t> GetBufferData(const boost::asio::mutable_buffer& buffer
 
 std::pair<const char*, size_t> GetBufferData(const boost::asio::const_buffer& buffer);
 
-struct Connection_t
+struct ConnectionFake
 {
     using Endpoint = boost::asio::ip::udp::endpoint;
     using IpAddress = boost::asio::ip::address;
@@ -50,29 +53,47 @@ struct Connection_t
     inline void Reset() noexcept {};
 };
 
-struct File_t
+struct FileFake
 {
-    FileStreamMock file_stream_;
+    ::testing::NiceMock<FileStreamMock> file_stream_;
 
     inline void DelegateFileStreamMockToFake() {file_stream_.DelegateToFake();}
     inline void Reset() noexcept {};
 };
 
-struct Timer_t
+struct TimerFake
 {
-    TimerMock timer_;
+    ::testing::NiceMock<TimerMock> timer_;
     std::chrono::milliseconds time_out_{1000};
 
     inline void DelegateTimerMockToFake() {timer_.DelegateToFake();}
     inline void Reset() noexcept {};
 };
 
-class BaseFixture : public ProtocolTestSupport<::testing::Test> 
+template<class PartsWithIoContext, class ... Parts>
+struct SessionDataMock : public PartsWithIoContext, Parts... 
+{
+    using IoContext = boost::asio::io_service;
+
+    SessionDataMock(IoContext& io_context)
+        : PartsWithIoContext(io_context)
+        , Parts()... 
+    {}
+
+    MOCK_METHOD(void, Reset, ());
+
+    void DoResetAll() noexcept 
+    {
+        PartsWithIoContext::Reset();
+        ((Parts::Reset()) , ...);
+    }
+};
+
+class BaseFixture : public ::testing::Test, protected ProtocolTestSupport
 {
 protected:
-
-    using Data = SessionData<SessionDataWithIoContext<>, Connection_t, File_t, Timer_t, Buffer, TransferState, FileNameMock, ModeDecoder, Tid>;
-    using Server = StateMachine<Accepting, ReadRequestTransitionTable::type, Data>;
+    using Data = SessionDataMock<SessionDataWithIoContext<>, ConnectionFake, FileFake, TimerFake, Buffer, TransferState, ::testing::NiceMock<FileNameMock>, Option, ModeDecoder, BlockSizeDecoder, TimeOutDecoder, TransferSizeDecoder, Tid>;
+    using Server = StateMachine<Accepting, ReadRequestTransitionTable_t, Data>;
 
     SocketMock::IoContext io_context;
     Server sut{std::ref(io_context)};
@@ -96,13 +117,17 @@ protected:
 
     void ExpectSendDataBlock(uint16_t block);
 
-    void ExpectSendSend(ErrorCode error);
+    void ExpectSendOack(std::initializer_list<const std::string> values);
+
+    void ExpectSendError(ErrorCode error);
 
     void ExpectReceiveAck(uint16_t block);
 
     void ExpectReceiveTimeOut();
 
     void ExpectReceiveRequest(OpCode op, std::initializer_list<const std::string> values);
+
+    void ExpectWhenReset(const std::function<void(const Server&)>& expectation);
 };
 
 } // end namespace testing

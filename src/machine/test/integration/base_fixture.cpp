@@ -17,9 +17,11 @@ std::pair<const char*, size_t> GetBufferData(const boost::asio::const_buffer& bu
 
 void BaseFixture::SetUpFileData() 
 {
+    auto file_size = (std::max(number_of_blocks - 1, 0) * agreed_block_size) + final_block_size;
     test_utils::RandomIterator file_data_begin;
-    file_data = std::string(file_data_begin, file_data_begin + (std::max(number_of_blocks - 1, 0) * agreed_block_size) + final_block_size);
-    this->sut.file_stream_.stream_.str(file_data);
+    file_data = std::string(file_data_begin, file_data_begin + file_size);
+    sut.file_stream_.stream_.str(file_data);
+    sut.file_size_fake_ = file_size;
 }
 
 void BaseFixture::SetUpListenerSocket() 
@@ -44,7 +46,20 @@ void BaseFixture::ExpectSendDataBlock(uint16_t block)
         ));
 }
 
-void BaseFixture::ExpectSendSend(ErrorCode error) 
+void BaseFixture::ExpectSendOack(std::initializer_list<const std::string> values) 
+{
+    EXPECT_CALL(this->sut.socket_, async_send_to(_,remote_end_point, _)).WillOnce(Invoke(
+            [values=values, this]
+            (const SendBuffer& buffer, const Endpoint&, std::function<void(const SystemErrorCode&, size_t)> handler)
+            {
+                auto [data, size] = GetBufferData(buffer);
+                ExpectOack(data, data + size, values);
+                handler(SystemErrorCode(), size);
+            }
+        ));
+}
+
+void BaseFixture::ExpectSendError(ErrorCode error) 
 {
     EXPECT_CALL(sut.socket_, async_send_to(_,remote_end_point, _)).WillOnce(Invoke(
             [error=error, this](const SendBuffer& buffer, const Endpoint&, std::function<void(const SystemErrorCode&, size_t)> handler)
@@ -95,6 +110,17 @@ void BaseFixture::ExpectReceiveRequest(OpCode op, std::initializer_list<const st
             auto [data, size] = GetBufferData(buffer);
             auto bytes_transfered = SetupRequest(data, data + size, op, values);
             handler(SystemErrorCode(), bytes_transfered);          
+        }
+    ));
+}
+
+void BaseFixture::ExpectWhenReset(const std::function<void(const Server&)>& expectation) 
+{
+    EXPECT_CALL(sut, Reset()).WillOnce(Invoke(
+        [expectation=expectation, this]
+        ()
+        {
+            expectation(sut);
         }
     ));
 }

@@ -12,8 +12,7 @@ struct File
     std::fstream file_stream_;
 
     inline void Reset() noexcept 
-    {
-        
+    {        
         file_stream_.close();
         file_stream_.clear();
     };

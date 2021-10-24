@@ -1,5 +1,3 @@
-find_package(Boost REQUIRED system)
-
 set(SOURCES
     ctor_test.cpp
     read_request_test.cpp
@@ -9,7 +7,6 @@ set(SOURCES
 set(LIBS
     gtest_main
     gmock
-    ${Boost_SYSTEM_LIBRARY}
     TftpMachine
     TftpData
     TestUtils

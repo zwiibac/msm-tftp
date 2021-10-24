@@ -17,8 +17,10 @@
 #include <zwiibac/tftp/data/file.h>
 #include <zwiibac/tftp/data/file_path.h>
 #include <zwiibac/tftp/data/timer.h>
+#include <zwiibac/tftp/data/option.h>
 #include <zwiibac/tftp/protocol/tid.h>
 #include <zwiibac/tftp/protocol/mode.h>
+#include <zwiibac/tftp/protocol/options.h>
 
 #include <zwiibac/tftp/machine/session_data.h>
 #include <zwiibac/tftp/machine/transition_table.h>
@@ -30,8 +32,8 @@ namespace tftp {
 class TftpServer 
 {
 private:
-    using TransitionTable = boost::mpl::joint_view<CommonTransitionTable::type, boost::mpl::joint_view<WriteRequestTransitionTable::type, ReadRequestTransitionTable::type>>;
-    using Data = SessionData<SessionDataWithIoContext<Connection, Timer>, File, Buffer, TransferState, FilePath, ModeDecoder, Tid>;
+    using TransitionTable = boost::mpl::joint_view<CommonTransitionTable_t, boost::mpl::joint_view<WriteRequestTransitionTable_t, ReadRequestTransitionTable::type>>;
+    using Data = SessionData<SessionDataWithIoContext<Connection, Timer>, File, Buffer, TransferState, FilePath, Option, ModeDecoder, BlockSizeDecoder, TimeOutDecoder, TransferSizeDecoder, Tid>;
     using Session = StateMachine<Accepting, TransitionTable, Data>;
     using SystemErrorCode = boost::system::error_code;
 
@@ -40,12 +42,12 @@ public:
     using IpAddress = Session::IpAddress;
 
     TftpServer(IoContext& io_context, size_t number_of_parallel_requests) 
-        : server_(number_of_parallel_requests)
+        : sessions_(number_of_parallel_requests)
         , listener_socket_(std::make_shared<Connection::Socket>(io_context, boost::asio::ip::udp::v4()))
     {
-        for (auto& server : server_) 
+        for (auto& session : sessions_) 
         {
-            server = std::make_unique<Session>(std::ref(io_context));
+            session = std::make_unique<Session>(std::ref(io_context));
         }
     }
 
@@ -61,7 +63,7 @@ public:
         listener_socket_->bind(listener_endpoint, bind_ec);
         ZWIIB_LOG_IF(error, bind_ec) << "Failed to bind socket to " << listener_endpoint << " | " << bind_ec << " " << bind_ec.message();
 
-        for (auto& session : server_) 
+        for (auto& session : sessions_) 
         {
             session->SetServerRootPath(root_path);
             session->local_address_ = ip_address;
@@ -77,7 +79,7 @@ public:
     }
 
 private:
-    std::vector<std::unique_ptr<Session> > server_;
+    std::vector<std::unique_ptr<Session> > sessions_;
     std::shared_ptr<Connection::Socket> listener_socket_;
 };
 

@@ -3,12 +3,14 @@
 #include <string>
 #include <algorithm>
 
+#include <gtest/gtest.h>
+
 #include <zwiibac/tftp/protocol/error_code.h>
 #include <zwiibac/tftp/protocol/opcode.h>
 #include <zwiibac/tftp/protocol/header.h>
+#include <zwiibac/tftp/protocol/request.h>
 
-template <class Test>
-class ProtocolTestSupport : public Test
+class ProtocolTestSupport
 {
 protected:
     using OpCode = zwiibac::tftp::OpCode;
@@ -17,7 +19,30 @@ protected:
     using ShortHeaderProxy = zwiibac::tftp::ShortHeaderProxy;
 
     template<class Iter>
-    size_t SetupRequest(Iter begin, Iter end, OpCode op, std::initializer_list<const std::string> values) 
+    void ExpectOack(Iter begin, Iter end, std::initializer_list<const std::string> expected_values) 
+    {
+        using Header = zwiibac::tftp::ShortHeaderView;
+        auto header = Header::FromRange(begin, end);
+        EXPECT_EQ(header.OpCd(), OpCode::OptionAcknowledgment);
+        
+        zwiibac::tftp::RequestTokenizer request_tokens(begin + Header::Size(), end);
+
+        auto actual_value = request_tokens.begin();
+        auto expected_value = expected_values.begin();
+
+        while(actual_value != request_tokens.end() && expected_value != expected_values.end()) 
+        {
+            EXPECT_EQ(*actual_value, *expected_value);
+            ++actual_value;
+            ++expected_value;
+        }
+
+        EXPECT_EQ(actual_value, request_tokens.end());
+        EXPECT_EQ(expected_value, expected_values.end());
+    }
+
+    template<class Iter>
+    size_t SetupRequest(Iter begin, Iter end, OpCode op, std::initializer_list<const std::string> values) const
     {
         Iter current = begin;
 
@@ -36,7 +61,7 @@ protected:
     }
 
     template<class Iter>
-    void SetupError(Iter begin, Iter end, ErrorCode error_code, std::string error) 
+    void SetupError(Iter begin, Iter end, ErrorCode error_code, std::string error) const
     {
         using Header = HeaderProxy;
         auto header = Header::FromRange(begin, end);
@@ -48,13 +73,13 @@ protected:
     }
 
     template<class Buffer>
-    size_t SetupAck(Buffer& buffer, uint16_t block, OpCode op_code=OpCode::Acknowledgment) 
+    size_t SetupAck(Buffer& buffer, uint16_t block, OpCode op_code=OpCode::Acknowledgment) const
     {
         return SetupAck(buffer.begin(), buffer.end(), block, op_code);
     }
 
     template<class Iter>
-    size_t SetupAck(Iter begin, Iter end, uint16_t block, OpCode op_code=OpCode::Acknowledgment) 
+    size_t SetupAck(Iter begin, Iter end, uint16_t block, OpCode op_code=OpCode::Acknowledgment) const
     {
         using Header = HeaderProxy;
         auto header = Header::FromRange(begin, end);
@@ -65,7 +90,7 @@ protected:
     }
 
     template<class Iter, class DataIter>
-    void SetupData(Iter begin, Iter end, uint16_t block, size_t block_size, DataIter data_begin, DataIter data_end) 
+    void SetupData(Iter begin, Iter end, uint16_t block, size_t block_size, DataIter data_begin, DataIter data_end) const
     {
         using Header = HeaderProxy;
         auto header = Header::FromRange(begin, end);

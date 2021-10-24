@@ -1,6 +1,7 @@
 #pragma once
 
 #include <bits/stdint-uintn.h>
+#include <type_traits>
 #include <optional>
 #include <cstddef>
 #include <cstdint>
@@ -34,50 +35,62 @@ class ShortHeader
 public:
     ShortHeader() = delete;
     uint16_t opcode = 0;
+
+    using OpCodeUType = std::underlying_type<OpCode>::type;
 };
 
 template<class Header>
-class WrapperBase
+class ObCodeGetter
 {
 protected:
-    constexpr WrapperBase() :  header_(nullptr) {}
-    constexpr WrapperBase(Header header) : header_(header) {}
+    constexpr ObCodeGetter(Header header) : header_(header) {}
+public:
+    inline constexpr OpCode OpCd() const { return static_cast<OpCode>(ntohs(header_->opcode)); }
+private:
     Header header_;
 };
 
-template<class Base>
-struct ObCodeGetter : private virtual Base 
+template<class Header>
+class ObCodeSetter
 {
-    inline constexpr OpCode OpCd() const { return static_cast<OpCode>(ntohs(Base::header_->opcode)); }
+protected:
+    constexpr ObCodeSetter(Header header) : header_(header) {}
+public:
+    inline constexpr void SetOpCd(OpCode opcode) { header_->opcode = htons(static_cast<typename std::remove_pointer_t<Header>::OpCodeUType>(opcode)); }
+private:
+    Header header_;
 };
 
-template<class Base>
-struct ObCodeSetter : private virtual Base 
+template<class Header>
+class WordGetter
 {
-    inline constexpr void SetOpCd(OpCode opcode) { Base::header_->opcode = htons(static_cast<Header::OpCodeUType>(opcode)); }
+protected:
+    constexpr WordGetter(Header header) : header_(header) {}
+public:
+    inline constexpr uint16_t Word() const { return ntohs(header_->word); }
+private:
+    Header header_;
 };
 
-template<class Base>
-struct WordGetter : private virtual Base
+template<class Header>
+class WordSetter
 {
-    inline constexpr uint16_t Word() const { return ntohs(Base::header_->word); }
-};
-
-template<class Base>
-struct WordSetter : private virtual Base
-{
-    inline constexpr void SetWord(uint16_t word) { Base::header_->word = htons(word); }
+protected:
+    constexpr WordSetter(Header header) : header_(header) {}
+public:
+    inline constexpr void SetWord(uint16_t word) { header_->word = htons(word); }
+private:
+    Header header_;
 };
 
 template<class Header, template<class> class ... Operations>
-class Wrapper : public Operations<WrapperBase<Header> >...
+class Wrapper : public Operations<Header>...
 {
 private:
     constexpr Wrapper(Header header) 
-        : WrapperBase<Header>(header)
-        , Operations<WrapperBase<Header> >()... {}
+        : Operations<Header>(header)... {}
 public:
-    inline static constexpr size_t Size() noexcept { return sizeof(typename std::remove_pointer<Header>::type); }
+    inline static constexpr size_t Size() noexcept { return sizeof(std::remove_pointer_t<Header>); }
     inline constexpr static Wrapper FromHeader(Header header) { return {header};}
     template<class Buffer>
     inline constexpr  static Wrapper FromBuffer(const Buffer& buffer) { return {reinterpret_cast<Header>(buffer.data())};}

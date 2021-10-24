@@ -3,7 +3,7 @@
 namespace zwiibac {
 namespace tftp {
 
-std::ostream& operator<<(std::ostream& os, Mode value) 
+std::ostream& operator<<(std::ostream& os, Mode value) noexcept
 {
     return os << ToString(value);
 }

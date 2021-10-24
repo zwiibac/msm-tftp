@@ -1,8 +1,6 @@
-#include <boost/filesystem/operations.hpp>
 #include <tuple>
 #include <fstream>
-
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <gtest/gtest-param-test.h>
 #include <gtest/gtest.h>
@@ -13,10 +11,10 @@ namespace {
 
 using namespace zwiibac::tftp;
 
-using boost::filesystem::create_directory;
-using boost::filesystem::remove_all;
-using boost::filesystem::path;
-using boost::filesystem::temp_directory_path;
+using std::filesystem::create_directory;
+using std::filesystem::remove_all;
+using std::filesystem::path;
+using std::filesystem::temp_directory_path;
 
 const path temp_path = temp_directory_path()/"zwiibac_tftp_filepath_test_4ee2cb38-1371-40e0-bd4a-5127067f0afe";
 
@@ -33,8 +31,6 @@ public:
 
     static void SetUpTestSuite() 
     {
-        
-
         remove_all(temp_path);
         create_directory(temp_path);
         create_directory(temp_path /"unit");

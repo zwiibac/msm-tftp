@@ -19,6 +19,7 @@
 #include <zwiibac/tftp/action/init_serve_write_request.h>
 #include <zwiibac/tftp/action/form_ack_packet.h>
 #include <zwiibac/tftp/action/write_data.h>
+#include <zwiibac/tftp/action/form_oack_packet.h>
 
 #include <zwiibac/tftp/event/accepting_failed.h>
 #include <zwiibac/tftp/event/packet_received.h>
@@ -38,6 +39,8 @@
 #include <zwiibac/tftp/guard/has_write_request_received.h>
 #include <zwiibac/tftp/guard/has_data_received.h>
 #include <zwiibac/tftp/guard/is_old_data.h>
+#include <zwiibac/tftp/guard/has_options.h>
+#include <zwiibac/tftp/guard/has_err_received.h>
 
 #include <zwiibac/tftp/state/accepting.h>
 #include <zwiibac/tftp/state/read_request_received.h>
@@ -69,6 +72,8 @@ public:
     >;
 };
 
+using CommonTransitionTable_t = CommonTransitionTable::type;
+
 class WriteRequestTransitionTable 
 {
 private:
@@ -92,6 +97,8 @@ public:
     >;
 };
 
+using WriteRequestTransitionTable_t = WriteRequestTransitionTable::type;
+
 class ReadRequestTransitionTable 
 {
 private:
@@ -99,10 +106,15 @@ private:
 
     template<class Source,class Event,class Target,class Action, class Guard>
     using Row = boost::msm::front::Row<Source, Event, Target, Action, Guard>;
+
+    using HasFinalAckReceived = And<HasAckReceived, Not<IsOldAck>, Not<HasMoreToSend>>;
+    using HasIntermediateAckReceived = And<HasAckReceived, Not<IsOldAck>, HasMoreToSend>;
+    using HasOldAckReceived = And<HasAckReceived, IsOldAck>;
 public:
     using type = boost::mpl::vector<
         Row<Accepting,           RequestReceived, ReadRequestReceived,  InitServeReadRequest,    And<Not<HasError>, HasReadRequestReceived>>,
-        Row<ReadRequestReceived, none,            DataRead,             FormDataPacket,          Not<HasError>>,
+        Row<ReadRequestReceived, none,            DataRead,             FormDataPacket,          Not<Or<HasError, HasOptions>>>,
+        Row<ReadRequestReceived, none,            DataRead,             FormOackPacket,          HasOptions>,
         Row<ReadRequestReceived, none,            SendingError,         FormErrorPacket,         HasError>,
         Row<DataRead,            none,            SendingData,          ResetTimeOut,            Not<HasError>>,
         Row<DataRead,            none,            SendingError,         FormErrorPacket,         HasError>,
@@ -110,11 +122,13 @@ public:
         Row<WaitingForAck,       TimedOut,        SendingData,          TimeOut,                 CanRetry>,
         Row<WaitingForAck,       TimedOut,        Resetted,             Reset,                   Not<CanRetry>>,        
         Row<WaitingForAck,       PacketReceived,  SendingError,         FormProtocolErrorPacket, And<FromAgreedEndpoint, Not<HasAckReceived>>>,
-        Row<WaitingForAck,       PacketReceived,  WaitingForAck,        none,                    Or<Not<FromAgreedEndpoint>, And<HasAckReceived, IsOldAck>>>,
-        Row<WaitingForAck,       PacketReceived,  DataRead,             FormDataPacket,          And<FromAgreedEndpoint, HasAckReceived, Not<IsOldAck>, HasMoreToSend>>,
-        Row<WaitingForAck,       PacketReceived,  Resetted,             Reset,                   And<FromAgreedEndpoint, HasAckReceived, Not<IsOldAck>, Not<HasMoreToSend>>> 
+        Row<WaitingForAck,       PacketReceived,  WaitingForAck,        none,                    Or<Not<FromAgreedEndpoint>, HasOldAckReceived>>,
+        Row<WaitingForAck,       PacketReceived,  DataRead,             FormDataPacket,          And<FromAgreedEndpoint, HasIntermediateAckReceived>>,
+        Row<WaitingForAck,       PacketReceived,  Resetted,             Reset,                   Or<HasErrReceived, And<FromAgreedEndpoint, HasFinalAckReceived>>> 
     >;
 };
+
+using ReadRequestTransitionTable_t = ReadRequestTransitionTable::type;
 
 
 } // end namespace tftp

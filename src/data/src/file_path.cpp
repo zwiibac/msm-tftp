@@ -1,5 +1,5 @@
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
+#include <limits>
 #include <optional>
 #include <algorithm>
 #include <string_view>
@@ -9,15 +9,14 @@
 namespace zwiibac {
 namespace tftp {
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 std::optional<std::string> FilePath::GetReadFilePath(const std::string_view& file_name) const 
 {
-    boost::system::error_code ec;
-    auto file_path = fs::canonical({file_name.cbegin(), file_name.cend()}, root_path_, ec);
+    std::error_code ec;
+    auto file_path = fs::canonical(root_path_ / std::string(file_name), ec);
 
     return !ec 
-            && file_path.size() > root_path_.size() 
             && (std::mismatch(root_path_.begin(), root_path_.end(), file_path.begin(), file_path.end()).first == root_path_.end())
             ? std::optional(file_path.string()) : std::nullopt;
 }
@@ -26,15 +25,22 @@ std::optional<std::string> FilePath::GetWriteFilePath(const std::string_view& fi
 {
     fs::path relativ_file_name_path{file_name.cbegin(), file_name.cend()};
 
-    boost::system::error_code ec;
-    auto file_path = fs::canonical(relativ_file_name_path.parent_path(), root_path_, ec);
+    std::error_code ec;
+    auto file_path = fs::canonical(root_path_ / relativ_file_name_path.parent_path(), ec);
     file_path /= relativ_file_name_path.filename();
 
     return !ec 
-            && file_path.size() > root_path_.size() 
             && (std::mismatch(root_path_.begin(), root_path_.end(), file_path.begin(), file_path.end()).first == root_path_.end())
             ? std::optional(file_path.string()) : std::nullopt;
 }
+
+std::optional<size_t> FilePath::GetFileSize(const std::string& file) const 
+{
+    std::error_code ec;
+    auto size = std::filesystem::file_size({file}, ec);
+    return !ec
+            ? std::optional(size) : std::nullopt;
+};
 
 void FilePath::SetServerRootPath(const std::string& root_path) 
 {
